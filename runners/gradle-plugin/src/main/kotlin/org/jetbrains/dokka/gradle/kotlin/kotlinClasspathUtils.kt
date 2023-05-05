@@ -39,12 +39,19 @@ private fun KotlinCompilation.compileClasspathOf(project: Project): FileCollecti
         return this.classpathOf(project)
     }
 
-    val platformDependencyFiles: FileCollection = (this as? AbstractKotlinNativeCompilation)
-        ?.target?.project?.configurations
-        ?.findByName(this.defaultSourceSet.implementationMetadataConfigurationName)
-        ?: project.files()
+    // In KGP 1.8.20 `platformDependencyFiles` and `kotlinCompile.libraries` are contained in compileDependencyFiles
+    val kgpVersion = project.getKgpVersion()
+    return if (kgpVersion != null && kgpVersion >= KotlinGradlePluginVersion(1, 8, 20)) {
+        this.compileDependencyFiles
+    } else {
+        @Suppress("DEPRECATION")
+        val platformDependencyFiles: FileCollection = (this as? AbstractKotlinNativeCompilation)
+            ?.target?.project?.configurations
+            ?.findByName(this.defaultSourceSet.implementationMetadataConfigurationName)
+            ?: project.files()
 
-    return this.compileDependencyFiles + platformDependencyFiles + this.classpathOf(project)
+        this.compileDependencyFiles + platformDependencyFiles + this.classpathOf(project)
+    }
 }
 
 private fun KotlinCompilation.classpathOf(project: Project): FileCollection {
